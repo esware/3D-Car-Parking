@@ -21,14 +21,22 @@ public class CarContoller : MonoBehaviour
     public float maxAcceleration = 30f;
     public float brakeAcceleration = 50f;
     public float turnSensivity = 1.0f;
-    public float maxSteerAngle = 30.0f;
+    public float maxSteerAngle = 45.0f;
 
     public List<Wheel> wheels;
     public Vector3 centerOfMass;
 
-    private float _moveInput;
+    public float speed = 0f;
+    public float maxSpeed = 120f;
+    public float _time = 0f;
+
+    public AnimationCurve accelerationCurve;
+    public MeshRenderer brakeRenderer;
+
     private Rigidbody _rigidbody;
+    private float _moveInput;
     private float _steerInput;
+    private bool _brakeInput;
     private void Start()
     {
         _rigidbody = GetComponent<Rigidbody>();
@@ -45,19 +53,31 @@ public class CarContoller : MonoBehaviour
     {
         Move();
         Steer();
+        Brake();
     }
 
     void GetInputs()
     {
         _moveInput = Input.GetAxis("Vertical");
         _steerInput = Input.GetAxis("Horizontal");
+        _brakeInput = Input.GetKey(KeyCode.Space);
     }
 
     void Move()
     {
+        if (_moveInput==0)
+        {
+            _time = 0f;
+        }
+
+        _time += Time.deltaTime;
+        speed = _moveInput * _time*maxAcceleration;
+        speed=Mathf.Clamp(speed, -maxSpeed, maxSpeed);
+        
         foreach (var wheel in wheels)
         {
-            wheel.wheelCollider.motorTorque = _moveInput * maxAcceleration * Time.deltaTime;
+            wheel.wheelCollider.motorTorque = speed;
+          
         }
     }
 
@@ -68,7 +88,7 @@ public class CarContoller : MonoBehaviour
             if (wheel.axel == Axel.Front)
             {
                 var steerAngle = _steerInput * turnSensivity * maxSteerAngle;
-                wheel.wheelCollider.steerAngle = Mathf.Lerp(wheel.wheelCollider.steerAngle, steerAngle,0.7f);
+                wheel.wheelCollider.steerAngle = Mathf.Lerp(wheel.wheelCollider.steerAngle, steerAngle,0.6f);
             }
         }
     }
@@ -77,11 +97,42 @@ public class CarContoller : MonoBehaviour
     {
         foreach (var wheel in wheels)
         {
-            Quaternion rot;
-            Vector3 pos;
-            wheel.wheelCollider.GetWorldPose(out pos,out rot);
+            wheel.wheelCollider.GetWorldPose(out var pos,out var rot);
             wheel.wheelModel.transform.position = pos;
             wheel.wheelModel.transform.rotation = rot;
         }
+    }
+
+    void Brake()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            foreach (var m in brakeRenderer.materials)
+            {
+                m.EnableKeyword("_EMISSION");
+            }
+        }
+        
+        if (Input.GetKeyUp(KeyCode.Space))
+        {
+            foreach (var m in brakeRenderer.materials)
+            {
+                m.DisableKeyword("_EMISSION");
+            }
+            
+            foreach (var wheel in wheels)
+            {
+                wheel.wheelCollider.brakeTorque =0f;
+            }
+        }
+        
+        if (Input.GetKey(KeyCode.Space))
+        {
+            foreach (var wheel in wheels)
+            {
+                wheel.wheelCollider.brakeTorque = 300 * (_brakeInput?1:0) * brakeAcceleration * Time.deltaTime;
+            }
+        }
+
     }
 }

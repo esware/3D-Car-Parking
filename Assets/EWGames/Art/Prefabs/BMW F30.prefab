@@ -940,6 +940,9 @@ MonoBehaviour:
     wheelCollider: {fileID: 578062001898404799}
     axel: 1
   centerOfMass: {x: 0, y: 0, z: 0}
+  speed: 0
+  maxSpeed: 120
+  _time: 0
 --- !u!1 &5148784003040537458
 GameObject:
   m_ObjectHideFlags: 0
